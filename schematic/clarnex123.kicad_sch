@@ -1,0 +1,290 @@
+(kicad_sch
+	(version 20260306)
+	(generator "eeschema")
+	(generator_version "10.0")
+	(uuid "311ffec1-cb91-4817-bc4f-3c0966e8d16d")
+	(paper "A4")
+	(lib_symbols)
+	(sheet
+		(at 46.99 63.5)
+		(size 39.37 27.94)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "305937db-c57c-4447-b6b4-4d8a84bafd25")
+		(property "Sheetname" "MCU"
+			(at 46.99 62.7884 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "STM32G474.kicad_sch"
+			(at 46.99 92.0246 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "clarnex123"
+				(path "/311ffec1-cb91-4817-bc4f-3c0966e8d16d"
+					(page "3")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 111.76 62.23)
+		(size 33.02 29.21)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "463081ab-5261-4d82-9ebb-78fd014720eb")
+		(property "Sheetname" "SX1262"
+			(at 111.76 61.5184 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "SX1262-Perip.kicad_sch"
+			(at 111.76 92.0246 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "clarnex123"
+				(path "/311ffec1-cb91-4817-bc4f-3c0966e8d16d"
+					(page "4")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 46.228 105.156)
+		(size 40.132 29.464)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "5f36bed2-4a6c-427e-bd66-a4f0e3687a8d")
+		(property "Sheetname" "Power supply"
+			(at 46.228 104.4444 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "PS.kicad_sch"
+			(at 46.228 135.2046 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "clarnex123"
+				(path "/311ffec1-cb91-4817-bc4f-3c0966e8d16d"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 149.606 62.23)
+		(size 32.004 29.21)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "885b8adc-3042-4553-9eee-e80c7ec52fc2")
+		(property "Sheetname" "Motor controller"
+			(at 149.606 61.5184 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "motor controller.kicad_sch"
+			(at 149.606 92.0246 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "clarnex123"
+				(path "/311ffec1-cb91-4817-bc4f-3c0966e8d16d"
+					(page "5")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 111.76 105.41)
+		(size 33.02 27.94)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "989ff3ec-cfb5-46ba-a159-1499676336a0")
+		(property "Sheetname" "LC29H AA"
+			(at 111.76 104.6984 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "untitled.kicad_sch"
+			(at 111.76 133.9346 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "clarnex123"
+				(path "/311ffec1-cb91-4817-bc4f-3c0966e8d16d"
+					(page "6")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 148.59 106.68)
+		(size 38.1 26.67)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0)
+		)
+		(uuid "b09a967d-66d2-412c-b97c-cad941e14ce7")
+		(property "Sheetname" "BMS"
+			(at 148.59 105.9684 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "BMS.kicad_sch"
+			(at 148.59 133.9346 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "clarnex123"
+				(path "/311ffec1-cb91-4817-bc4f-3c0966e8d16d"
+					(page "7")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+	(embedded_fonts no)
+)
