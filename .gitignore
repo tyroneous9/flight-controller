@@ -2,3 +2,5 @@ build
 mx.scratch
 !.settings
 schematic/.history/
+.clangd
+.vscode
