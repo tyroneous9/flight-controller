@@ -131,32 +131,19 @@ sx126x_hal_status_t sx126x_hal_read( const void* context, const uint8_t* command
                                      uint8_t* data, const uint16_t data_length )
 {
     ( void ) context;
-    
-    // TODO 4: Send a command, then read the radio's reply into `data`.
-    //   Same shape as write, with a receive instead of a second transmit.
-    //   Example: sx126x_read_register(0x0740) sends {0x1D, 0x07, 0x40, 0x00} as `command`,
-    //   then reads 2 bytes into `data`. The trailing 0x00 is the status byte the radio
-    //   sends back while the MCU clocks out a NOP; the driver already includes it.
-    //
-    //   Steps:
-    //   a) Wait for BUSY (return ERROR on timeout).
-    //   b) Clear `data` to zeros.   Hint: memset(data, 0, data_length)
-    //        Why? SPI always sends and receives at the same time. HAL_SPI_Receive in
-    //        full-duplex master mode sends whatever is already in the buffer while it
-    //        reads. The radio expects NOP bytes (0x00) during a read, so make sure that's
-    //        what goes out.
-    //   c) Pull LORA_NSS low.
-    //   d) Send the command bytes (as in write).
-    //   e) If that succeeded, receive data_length bytes into `data`.
-    //        Hint: HAL_SPI_Receive(&hspi2, data, data_length, SX126X_HAL_SPI_TIMEOUT_MS)
-    //   f) Pull LORA_NSS high, even on failure.
-    //   g) Return OK only if both SPI calls returned HAL_OK.
-
-    ( void ) command;
-    ( void ) command_length;
-    ( void ) data;
-    ( void ) data_length;
-    return SX126X_HAL_STATUS_ERROR;
+    if(sx126x_hal_wait_on_busy() != SX126X_HAL_STATUS_OK)
+    {
+        return SX126X_HAL_STATUS_ERROR;
+    }
+    HAL_GPIO_WritePin(LORA_NSS_GPIO_Port, LORA_NSS_Pin, GPIO_PIN_RESET);
+    HAL_StatusTypeDef status = HAL_SPI_Transmit(&hspi2, command, command_length, SX126X_HAL_SPI_TIMEOUT_MS);
+    if(status == HAL_OK)
+    {
+        memset(data, 0, data_length);
+        status = HAL_SPI_Receive(&hspi2, data, data_length, SX126X_HAL_SPI_TIMEOUT_MS);
+    }
+    HAL_GPIO_WritePin(LORA_NSS_GPIO_Port, LORA_NSS_Pin, GPIO_PIN_SET);
+    return (status == HAL_OK) ? SX126X_HAL_STATUS_OK : SX126X_HAL_STATUS_ERROR;
 }
 
 /*
@@ -166,18 +153,15 @@ sx126x_hal_status_t sx126x_hal_read( const void* context, const uint8_t* command
 
 static sx126x_hal_status_t sx126x_hal_wait_on_busy( void )
 {
-    // TODO 0 (do this first; write and read depend on it):
-    //   Loop while LORA_BUSY reads high. Give up after SX126X_HAL_BUSY_TIMEOUT_MS.
-    //
-    //   Hint: HAL_GPIO_ReadPin(port, pin) returns GPIO_PIN_SET (high) or GPIO_PIN_RESET (low).
-    //   Hint: HAL_GetTick() returns milliseconds since boot. Record it before the loop.
-    //   Hint: compare with (HAL_GetTick() - start > timeout), not (now > start + timeout).
-    //         The subtraction form still works when the tick counter wraps around.
-    //
-    //   Semtech's example loops forever with no timeout. Why is a timeout better on a
-    //   flight controller? What does the caller do when this returns ERROR?
-
-    return SX126X_HAL_STATUS_ERROR;
+    uint32_t start_time = HAL_GetTick();
+    while (HAL_GPIO_ReadPin(LORA_BUSY_GPIO_Port, LORA_BUSY_Pin) == GPIO_PIN_SET)
+    {
+        if(HAL_GetTick() - start_time > SX126X_HAL_BUSY_TIMEOUT_MS)
+        {
+            return SX126X_HAL_STATUS_ERROR;
+        }
+    }
+    return SX126X_HAL_STATUS_OK;
 }
 
 /* --- EOF ------------------------------------------------------------------ */
