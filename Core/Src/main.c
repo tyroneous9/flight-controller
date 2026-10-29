@@ -75,8 +75,11 @@ static void print_radio_status(void)
   }
   else
   {
-    printf("Chip status: %d\n", chip_status.chip_mode);
+    printf("Radio chip status: %d\n", chip_status.chip_mode);
   }
+  /* chip status reference:
+    2 = STBY_RC   3 = STBY_XOSC   4 = FS   5 = RX   6 = TX
+   */
 }
 
 /* USER CODE END 0 */
