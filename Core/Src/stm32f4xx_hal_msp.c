@@ -101,7 +101,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     PB14     ------> SPI2_MISO
     PB15     ------> SPI2_MOSI
     */
-    GPIO_InitStruct.Pin = LORA_SCK_Pin|LORA_MISO_Pin|LORA_MOSI_Pin;
+    GPIO_InitStruct.Pin = RADIO_SCK_Pin|RADIO_MISO_Pin|RADIO_MOSI_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -137,7 +137,7 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
     PB14     ------> SPI2_MISO
     PB15     ------> SPI2_MOSI
     */
-    HAL_GPIO_DeInit(GPIOB, LORA_SCK_Pin|LORA_MISO_Pin|LORA_MOSI_Pin);
+    HAL_GPIO_DeInit(GPIOB, RADIO_SCK_Pin|RADIO_MISO_Pin|RADIO_MOSI_Pin);
 
     /* USER CODE BEGIN SPI2_MspDeInit 1 */
 

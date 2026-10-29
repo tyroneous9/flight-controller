@@ -21,6 +21,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include "sx126x.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -63,7 +64,24 @@ int __io_putchar(int ch)
     HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
     return ch;
 }
+
+static void print_radio_status(void)
+{
+  sx126x_chip_status_t chip_status = {0};
+  sx126x_status_t radio_status = sx126x_get_status(NULL, &chip_status);
+  if(radio_status != SX126X_STATUS_OK)
+  {
+    printf("Failed to get status: %d\n", radio_status);
+  }
+  else
+  {
+    printf("Chip status: %d\n", chip_status.chip_mode);
+  }
+}
+
 /* USER CODE END 0 */
+
+
 
 /**
   * @brief  The application entry point.
@@ -107,6 +125,8 @@ int main(void)
     /* USER CODE END WHILE */
     /* USER CODE BEGIN 3 */
     printf("Hello, World!\r\n");
+    sx126x_reset(NULL);
+    print_radio_status();
     HAL_Delay(1000);
   }
   /* USER CODE END 3 */
@@ -252,13 +272,13 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LORA_RF_SW1_GPIO_Port, LORA_RF_SW1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(RADIO_RF_SW1_GPIO_Port, RADIO_RF_SW1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LORA_RST_GPIO_Port, LORA_RST_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(RADIO_RST_GPIO_Port, RADIO_RST_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LORA_NSS_GPIO_Port, LORA_NSS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(RADIO_NSS_GPIO_Port, RADIO_NSS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -266,38 +286,38 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LD2_Pin LORA_RST_Pin */
-  GPIO_InitStruct.Pin = LD2_Pin|LORA_RST_Pin;
+  /*Configure GPIO pins : LD2_Pin RADIO_RST_Pin */
+  GPIO_InitStruct.Pin = LD2_Pin|RADIO_RST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LORA_RF_SW1_Pin */
-  GPIO_InitStruct.Pin = LORA_RF_SW1_Pin;
+  /*Configure GPIO pin : RADIO_RF_SW1_Pin */
+  GPIO_InitStruct.Pin = RADIO_RF_SW1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LORA_RF_SW1_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(RADIO_RF_SW1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LORA_BUSY_Pin */
-  GPIO_InitStruct.Pin = LORA_BUSY_Pin;
+  /*Configure GPIO pin : RADIO_BUSY_Pin */
+  GPIO_InitStruct.Pin = RADIO_BUSY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(LORA_BUSY_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(RADIO_BUSY_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LORA_DIO1_Pin */
-  GPIO_InitStruct.Pin = LORA_DIO1_Pin;
+  /*Configure GPIO pin : RADIO_DIO1_Pin */
+  GPIO_InitStruct.Pin = RADIO_DIO1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  HAL_GPIO_Init(LORA_DIO1_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(RADIO_DIO1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LORA_NSS_Pin */
-  GPIO_InitStruct.Pin = LORA_NSS_Pin;
+  /*Configure GPIO pin : RADIO_NSS_Pin */
+  GPIO_InitStruct.Pin = RADIO_NSS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LORA_NSS_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(RADIO_NSS_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
