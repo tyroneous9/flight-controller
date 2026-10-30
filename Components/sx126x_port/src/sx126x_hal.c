@@ -103,7 +103,7 @@ sx126x_hal_status_t sx126x_hal_wakeup( const void* context )
     HAL_GPIO_WritePin(RADIO_NSS_GPIO_Port, RADIO_NSS_Pin, GPIO_PIN_RESET);
     HAL_Delay(1);
     HAL_GPIO_WritePin(RADIO_NSS_GPIO_Port, RADIO_NSS_Pin, GPIO_PIN_SET);
-    return SX126X_HAL_STATUS_OK;  // TODO: return OK once implemented
+    return SX126X_HAL_STATUS_OK;
 }
 
 sx126x_hal_status_t sx126x_hal_write( const void* context, const uint8_t* command, const uint16_t command_length,
