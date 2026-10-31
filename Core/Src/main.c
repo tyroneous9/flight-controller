@@ -31,9 +31,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-/* 1 = 32 MHz reference is a TCXO powered from DIO3 (Wio-SX1262),
- * 0 = plain crystal. Used with #if around radio_init step 3. */
-#define RADIO_USE_TCXO 1
+/* The Wio-SX1262's 32 MHz reference is a TCXO powered from DIO3 (confirmed
+ * on the board). Delay is in 15.625 us steps: 5 ms / 15.625 us = 320. */
+#define RADIO_TCXO_VOLTAGE  SX126X_TCXO_CTRL_1_8V
+#define RADIO_TCXO_DELAY    320
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -103,8 +104,8 @@ static void print_device_errors(const char *label)
  * setup (packet type, frequency, PA config, ...) gets appended here.
  *
  * The chip boots on a rough internal RC clock (STBY_RC, mode 2). TX/RX need
- * the precise 32 MHz reference, which is either a crystal (works on its own)
- * or a TCXO (needs power from DIO3 after SetDIO3AsTCXOCtrl).
+ * the precise 32 MHz reference, which on this module is a TCXO that only gets
+ * power from DIO3 after SetDIO3AsTCXOCtrl.
  * Datasheet: 4.1.4 TCXO Control Block (p.25), 13.3.6 SetDIO3AsTCXOCtrl (p.87),
  * 13.1.12 Calibrate Function, 13.6.1/13.6.2 Get/ClearDeviceErrors (p.104).
  */
@@ -114,15 +115,12 @@ static int radio_init(void)
   sx126x_reset(NULL);
   sx126x_set_standby(NULL, SX126X_STANDBY_CFG_RC);
 
-#if RADIO_USE_TCXO
-  /* Power the TCXO from DIO3. 1.8V is what other Wio-SX1262 projects use.
-   * Startup delay is in 15.625 us steps: 5 ms / 15.625 us = 320. */
-  sx126x_set_dio3_as_tcxo_ctrl(NULL, SX126X_TCXO_CTRL_1_8V, 320);
+  /* Power the TCXO from DIO3. */
+  sx126x_set_dio3_as_tcxo_ctrl(NULL, RADIO_TCXO_VOLTAGE, RADIO_TCXO_DELAY);
   /* Drop the XOSC_START flag left over from power-on with no clock (13.3.6). */
   sx126x_clear_device_errors(NULL);
-#endif
 
-  /* The power-on calibration ran without a clock on TCXO boards, so redo it. */
+  /* The power-on calibration ran without a clock, so redo it. */
   sx126x_cal(NULL, SX126X_CAL_ALL);
 
   /* Verify: no errors, and the chip can switch to the 32 MHz reference. */
@@ -134,9 +132,8 @@ static int radio_init(void)
 
   if (errors != 0 || status.chip_mode != SX126X_CHIP_MODE_STBY_XOSC)
   {
-    /* 0x0020 (XOSC_START): try a 10 ms delay (640), then other voltages
-     * (SX126X_TCXO_CTRL_1_7V ... _3_3V). If nothing works, the module may
-     * have a crystal: set RADIO_USE_TCXO to 0. */
+    /* 0x0020 (XOSC_START): the TCXO didn't start. Check RADIO_TCXO_VOLTAGE
+     * and RADIO_TCXO_DELAY against the module's TCXO. */
     print_device_errors("radio_init");
     print_radio_status();
     return -1;
