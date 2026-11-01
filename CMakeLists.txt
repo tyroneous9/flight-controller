@@ -46,13 +46,16 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     Components/sx126x_driver/src/sx126x.c
-    Components/sx126x_port/src/sx126x_hal.c
+    Components/sx126x_port/sx126x_hal.c
+    Components/radio/radio.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
     Components/sx126x_driver/src
+    Components/sx126x_port
+    Components/radio
 )
 
 # Add project symbols (macros)
