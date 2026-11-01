@@ -31,8 +31,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-/* Assumed: the Wio-SX1262's 32 MHz reference is a 1.8V TCXO powered from DIO3
- * (what other Wio-SX1262 projects use; not yet confirmed for this module).
+/* The Wio-SX1262's 32 MHz reference is a TCXO powered from DIO3.
+ * 1.8V works; not yet checked against the module datasheet's rated voltage.
  * Delay is in 15.625 us steps: 5 ms / 15.625 us = 320. */
 #define RADIO_TCXO_VOLTAGE  SX126X_TCXO_CTRL_1_8V
 #define RADIO_TCXO_DELAY    320
@@ -40,7 +40,16 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+/* Return -1 from the calling function if an sx126x_* call fails, naming it. */
+#define RADIO_CHECK(call)                                 \
+  do                                                      \
+  {                                                       \
+    if ((call) != SX126X_STATUS_OK)                       \
+    {                                                     \
+      printf("Radio call failed: %s\r\n", #call);         \
+      return -1;                                          \
+    }                                                     \
+  } while (0)
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -86,78 +95,37 @@ static void print_radio_status(void)
    */
 }
 
-static void print_device_errors(const char *label)
-{
-  sx126x_errors_mask_t errors = 0;
-  sx126x_status_t get_status = sx126x_get_device_errors(NULL, &errors);
-  if(get_status != SX126X_STATUS_OK)
-  {
-    printf("Failed to get device errors: %d\r\n", get_status);
-  }
-  else
-  {
-    printf("%s: errors = 0x%04X\r\n", label, errors);
-  }
-}
-
-static void tcxo_detect_test(void)
-{
-  /* Try A: no TCXO command. A crystal starts by itself; a DIO3-powered TCXO can't. */
-  sx126x_reset(NULL);
-  sx126x_clear_device_errors(NULL);
-  sx126x_set_standby(NULL, SX126X_STANDBY_CFG_XOSC);
-  printf("A (no TCXO cmd):\r\n");
-  print_device_errors("  A");
-  print_radio_status();
-
-  /* Try B: power DIO3 at 1.8V. Reset first, since A may have left error state. */
-  sx126x_reset(NULL);
-  sx126x_set_standby(NULL, SX126X_STANDBY_CFG_RC);
-  sx126x_set_dio3_as_tcxo_ctrl(NULL, SX126X_TCXO_CTRL_1_8V, 320);
-  sx126x_clear_device_errors(NULL);
-  sx126x_set_standby(NULL, SX126X_STANDBY_CFG_XOSC);
-  printf("B (TCXO 1.8V):\r\n");
-  print_device_errors("  B");
-  print_radio_status();
-}
-
-/* Bring the radio from power-on to a known, ready state.
- * Returns 0 on success, -1 on failure. Call once at startup; later radio
- * setup (packet type, frequency, PA config, ...) gets appended here.
- *
- * The chip boots on a rough internal RC clock (STBY_RC, mode 2). TX/RX need
- * the precise 32 MHz reference, which on this module is a TCXO that only gets
- * power from DIO3 after SetDIO3AsTCXOCtrl.
- * Datasheet: 4.1.4 TCXO Control Block (p.25), 13.3.6 SetDIO3AsTCXOCtrl (p.87),
- * 13.1.12 Calibrate Function, 13.6.1/13.6.2 Get/ClearDeviceErrors (p.104).
- */
+/* Bring the radio from power-on to ready: TCXO running, calibrated, and in
+ * STBY_XOSC. Returns 0 on success, -1 on failure.
+ * Datasheet: 4.1.4 TCXO, 13.3.6 SetDIO3AsTCXOCtrl, 13.1.12 Calibrate,
+ * 13.6.1/13.6.2 Get/ClearDeviceErrors. */
 static int radio_init(void)
 {
-  /* Clean state. Reset is also the only way to undo TCXO mode (4.1.4). */
-  sx126x_reset(NULL);
-  sx126x_set_standby(NULL, SX126X_STANDBY_CFG_RC);
+  sx126x_errors_mask_t errors = 0;
+  sx126x_chip_status_t status = {0};
 
-  /* Power the TCXO from DIO3. */
-  sx126x_set_dio3_as_tcxo_ctrl(NULL, RADIO_TCXO_VOLTAGE, RADIO_TCXO_DELAY);
-  /* Drop the XOSC_START flag left over from power-on with no clock (13.3.6). */
-  sx126x_clear_device_errors(NULL);
+  /* Clean state. Reset is also the only way to undo TCXO mode (4.1.4). */
+  RADIO_CHECK(sx126x_reset(NULL));
+  RADIO_CHECK(sx126x_set_standby(NULL, SX126X_STANDBY_CFG_RC));
+
+  /* Power the TCXO from DIO3, then drop the XOSC_START flag left over from
+   * power-on, when the TCXO had no power (13.3.6). */
+  RADIO_CHECK(sx126x_set_dio3_as_tcxo_ctrl(NULL, RADIO_TCXO_VOLTAGE, RADIO_TCXO_DELAY));
+  RADIO_CHECK(sx126x_clear_device_errors(NULL));
 
   /* The power-on calibration ran without a clock, so redo it. */
-  sx126x_cal(NULL, SX126X_CAL_ALL);
+  RADIO_CHECK(sx126x_cal(NULL, SX126X_CAL_ALL));
 
-  /* Verify: no errors, and the chip can switch to the 32 MHz reference. */
-  sx126x_errors_mask_t errors = 0;
-  sx126x_get_device_errors(NULL, &errors);
-  sx126x_set_standby(NULL, SX126X_STANDBY_CFG_XOSC);
-  sx126x_chip_status_t status = {0};
-  sx126x_get_status(NULL, &status);
+  /* Switch to the 32 MHz reference, then verify: no errors and mode 3. */
+  RADIO_CHECK(sx126x_set_standby(NULL, SX126X_STANDBY_CFG_XOSC));
+  RADIO_CHECK(sx126x_get_device_errors(NULL, &errors));
+  RADIO_CHECK(sx126x_get_status(NULL, &status));
 
   if (errors != 0 || status.chip_mode != SX126X_CHIP_MODE_STBY_XOSC)
   {
     /* 0x0020 (XOSC_START): the TCXO didn't start. Check RADIO_TCXO_VOLTAGE
      * and RADIO_TCXO_DELAY against the module's TCXO. */
-    print_device_errors("radio_init");
-    print_radio_status();
+    printf("Radio init: errors = 0x%04X, chip mode = %d\r\n", errors, status.chip_mode);
     return -1;
   }
 
@@ -200,7 +168,6 @@ int main(void)
   MX_SPI2_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  tcxo_detect_test();
   if (radio_init() != 0)
   {
     printf("Radio init FAILED\r\n");
@@ -217,8 +184,6 @@ int main(void)
   {
     /* USER CODE END WHILE */
     /* USER CODE BEGIN 3 */
-    printf("Hello, World!\r\n");
-    
     print_radio_status();
     HAL_Delay(1000);
   }
