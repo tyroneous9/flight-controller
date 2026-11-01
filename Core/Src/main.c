@@ -31,8 +31,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-/* The Wio-SX1262's 32 MHz reference is a TCXO powered from DIO3 (confirmed
- * on the board). Delay is in 15.625 us steps: 5 ms / 15.625 us = 320. */
+/* Assumed: the Wio-SX1262's 32 MHz reference is a 1.8V TCXO powered from DIO3
+ * (what other Wio-SX1262 projects use; not yet confirmed for this module).
+ * Delay is in 15.625 us steps: 5 ms / 15.625 us = 320. */
 #define RADIO_TCXO_VOLTAGE  SX126X_TCXO_CTRL_1_8V
 #define RADIO_TCXO_DELAY    320
 /* USER CODE END PD */
@@ -97,6 +98,27 @@ static void print_device_errors(const char *label)
   {
     printf("%s: errors = 0x%04X\r\n", label, errors);
   }
+}
+
+static void tcxo_detect_test(void)
+{
+  /* Try A: no TCXO command. A crystal starts by itself; a DIO3-powered TCXO can't. */
+  sx126x_reset(NULL);
+  sx126x_clear_device_errors(NULL);
+  sx126x_set_standby(NULL, SX126X_STANDBY_CFG_XOSC);
+  printf("A (no TCXO cmd):\r\n");
+  print_device_errors("  A");
+  print_radio_status();
+
+  /* Try B: power DIO3 at 1.8V. Reset first, since A may have left error state. */
+  sx126x_reset(NULL);
+  sx126x_set_standby(NULL, SX126X_STANDBY_CFG_RC);
+  sx126x_set_dio3_as_tcxo_ctrl(NULL, SX126X_TCXO_CTRL_1_8V, 320);
+  sx126x_clear_device_errors(NULL);
+  sx126x_set_standby(NULL, SX126X_STANDBY_CFG_XOSC);
+  printf("B (TCXO 1.8V):\r\n");
+  print_device_errors("  B");
+  print_radio_status();
 }
 
 /* Bring the radio from power-on to a known, ready state.
@@ -178,6 +200,7 @@ int main(void)
   MX_SPI2_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  tcxo_detect_test();
   if (radio_init() != 0)
   {
     printf("Radio init FAILED\r\n");
