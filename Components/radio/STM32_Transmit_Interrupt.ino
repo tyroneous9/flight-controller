@@ -1,5 +1,5 @@
 /*
-  RadioLib STM32WLx Transmit with Interrupts Example
+  RadioLib SX126x Transmit with Interrupts Example
 
   This example transmits LoRa packets with one second delays
   between them. Each packet contains up to 256 bytes
@@ -7,6 +7,8 @@
   - Arduino String
   - null-terminated char array (C-string)
   - arbitrary binary data (byte array)
+
+  Other modules from SX126x family can also be used.
 
   For default module settings, see the wiki page
   https://github.com/jgromes/RadioLib/wiki/Default-configuration#sx126x---lora-modem
@@ -18,22 +20,20 @@
 // include the library
 #include <RadioLib.h>
 
-// no need to configure pins, signals are routed to the radio internally
-STM32WLx radio = new STM32WLx_Module();
+// SX1262 has the following connections:
+// NSS pin:   10
+// DIO1 pin:  2
+// NRST pin:  3
+// BUSY pin:  9
+SX1262 radio = new Module(10, 2, 3, 9);
 
-// set RF switch configuration for Nucleo WL55JC1
-// NOTE: other boards may be different!
-//       Some boards may not have either LP or HP.
-//       For those, do not set the LP/HP entry in the table.
-static const uint32_t rfswitch_pins[] =
-                         {PC3,  PC4,  PC5, RADIOLIB_NC, RADIOLIB_NC};
-static const Module::RfSwitchMode_t rfswitch_table[] = {
-  {STM32WLx::MODE_IDLE,  {LOW,  LOW,  LOW}},
-  {STM32WLx::MODE_RX,    {HIGH, HIGH, LOW}},
-  {STM32WLx::MODE_TX_LP, {HIGH, HIGH, HIGH}},
-  {STM32WLx::MODE_TX_HP, {HIGH, LOW,  HIGH}},
-  END_OF_MODE_TABLE,
-};
+// or detect the pinout automatically using RadioBoards
+// https://github.com/radiolib-org/RadioBoards
+/*
+#define RADIO_BOARD_AUTO
+#include <RadioBoards.h>
+Radio radio = new RadioModule();
+*/
 
 // save transmission state between loops
 int transmissionState = RADIOLIB_ERR_NONE;
@@ -45,6 +45,9 @@ volatile bool transmittedFlag = false;
 // is transmitted by the module
 // IMPORTANT: this function MUST be 'void' type
 //            and MUST NOT have any arguments!
+#if defined(ESP8266) || defined(ESP32)
+  ICACHE_RAM_ATTR
+#endif
 void setFlag(void) {
   // we sent a packet, set the flag
   transmittedFlag = true;
@@ -53,16 +56,15 @@ void setFlag(void) {
 void setup() {
   Serial.begin(9600);
 
-  // set RF switch control configuration
-  // this has to be done prior to calling begin()
-  radio.setRfSwitchTable(rfswitch_pins, rfswitch_table);
+  // before calling begin(), correct crystal has to be selected
+  // most SX126x have a TCXO which needs 1.6V reference
+  // set to 0 if your radio has an XTAL
+  radio.tcxoVoltage = RadioLibTCXOVoltage_t::Voltage1V6;
 
-  // initialize STM32WL with default settings
-  // except frequency and TCXO voltage suitable for Nucleo WL55JC1
-  Serial.print(F("[STM32WL] Initializing ... "));
+  // initialize SX1262 at 434 MHz
+  Serial.print(F("[SX1262] Initializing ... "));
   ConfigLoRa_t config;
-  config.frequency = RADIOLIB_UNIT_MEGA(868);
-  radio.tcxoVoltage = RadioLibTCXOVoltage_t::Voltage1V7;
+  config.frequency = RADIOLIB_UNIT_MEGA(434);
   int state = radio.begin(config);
   if (state == RADIOLIB_ERR_NONE) {
     Serial.println(F("success!"));
@@ -77,7 +79,7 @@ void setup() {
   radio.setIrqAction(setFlag);
 
   // start transmitting the first packet
-  Serial.print(F("[STM32WL] Sending first packet ... "));
+  Serial.print(F("[SX1262] Sending first packet ... "));
 
   // you can transmit C-string or Arduino string up to
   // 256 characters long
@@ -119,7 +121,7 @@ void loop() {
     delay(1000);
 
     // send another one
-    Serial.print(F("[STM32WL] Sending another packet ... "));
+    Serial.print(F("[SX1262] Sending another packet ... "));
 
     // you can transmit C-string or Arduino string up to
     // 256 characters long
