@@ -3,24 +3,57 @@
 #include <stdio.h>
 #include "sx126x.h"
 
-/* The Wio-SX1262's 32 MHz reference is a TCXO powered from DIO3. 
+/* ---------------------------------------------------------------------------
+ * Clock (TCXO)
+ * ------------------------------------------------------------------------- */
+
+/* The Wio-SX1262's 32 MHz reference is a TCXO powered from DIO3.
  * This can be removed later when replacing this module with a cheaper one that has a crystal.
  * 1.8V works; not yet checked against the module datasheet's rated voltage.
  * Delay is in 15.625 us steps: 5 ms / 15.625 us = 320. */
 #define RADIO_TCXO_VOLTAGE  SX126X_TCXO_CTRL_1_8V
 #define RADIO_TCXO_DELAY    320
 
-/* Frequency and the band used for image calibration. Must be legal where you
- * fly and match the receiver. US 902-928 MHz; for EU use 868 MHz / 863-870. */
+/* ---------------------------------------------------------------------------
+ * Frequency
+ * ------------------------------------------------------------------------- */
+
+/* Center frequency of the signal. Both radios must use the same one, and it
+ * must be inside a band that's legal where you fly:
+ *   US: 902-928 MHz (FCC Part 15)   EU: 863-870 MHz (868 MHz is common)
+ * The band limits are only used for image calibration: the receiver is tuned
+ * to reject a "mirror" frequency, and that tuning depends on the band. */
 #define RADIO_FREQ_HZ       915000000UL
 #define RADIO_BAND_MIN_MHZ  902
 #define RADIO_BAND_MAX_MHZ  928
 
-/* LoRa settings, using RadioLib's SX126x defaults. Both radios must match. */
+/* ---------------------------------------------------------------------------
+ * LoRa modulation (RadioLib's SX126x defaults). Both radios must match.
+ * ------------------------------------------------------------------------- */
+
+/* Spreading factor: bits per chirp, SF5..SF12. Each step up doubles the time
+ * per chirp (slower) and lets the receiver hear a signal ~2.5 dB weaker
+ * (more range). SF9 at 125 kHz: 4.1 ms per chirp, ~226 ms for 20 bytes. */
 #define RADIO_SF            SX126X_LORA_SF9
+
+/* Bandwidth: how wide a range of frequencies each chirp sweeps.
+ * Wider = faster but shorter range; 125 kHz is the most common choice.
+ * Options include 125, 250 and 500 kHz (and narrower ones below 125). */
 #define RADIO_BW            SX126X_LORA_BW_125
+
+/* Coding rate: error-correction overhead. 4/7 sends every 4 data bits as 7.
+ * Options 4/5 (fastest, least protection) .. 4/8 (slowest, most).
+ * Helps against short interference bursts; adds little range. */
 #define RADIO_CR            SX126X_LORA_CR_4_7
+
+/* Preamble: plain chirps at the start of each packet that let the receiver
+ * notice a packet and lock onto its timing. 8 is standard. Longer makes
+ * packets easier to catch but costs airtime. Both sides should match. */
 #define RADIO_PREAMBLE_LEN  8
+
+/* Transmit power in dBm (10 dBm = 10 mW). The SX1262's high-power PA allows
+ * -9..+22 dBm. +3 dB = 2x power; +6 dB = ~2x range in open space.
+ * Check your region's legal limit before raising it. */
 #define RADIO_TX_POWER_DBM  10
 
 /* Return -1 from the calling function if an sx126x_* call fails, naming it. */
@@ -58,29 +91,49 @@ int radio_init(void)
 {
   sx126x_errors_mask_t errors = 0;
   sx126x_chip_status_t status = {0};
-  /* SX1262 high-power PA, as RadioLib configures it; TX power is then set
-   * directly in dBm by set_tx_params (13.1.14). */
+
+  /* Power amplifier (PA) setup, as RadioLib configures it (13.1.14).
+   * These values select and size the amplifier; the actual output power is
+   * then set in dBm by set_tx_params below. Semtech's table lists these as
+   * the optimal values for +22 dBm, so at 10 dBm the PA is less efficient
+   * (draws more current) than a setting tuned for 10 dBm, but works fine. */
   const sx126x_pa_cfg_params_t pa_cfg = {
-    .pa_duty_cycle = 0x04,
-    .hp_max = 0x07,
-    .device_sel = 0x00,
-    .pa_lut = 0x01,
+    .pa_duty_cycle = 0x04, /* PA on-time per cycle; SX1262 max is 0x04 */
+    .hp_max = 0x07,        /* size of the high-power PA, 0x00..0x07 (max) */
+    .device_sel = 0x00,    /* 0 = SX1262 (high-power PA), 1 = SX1261 */
+    .pa_lut = 0x01,        /* reserved, always 0x01 */
   };
+
+  /* Modulation: how each chirp is shaped. See the #defines at the top. */
   const sx126x_mod_params_lora_t mod_params = {
     .sf = RADIO_SF,
     .bw = RADIO_BW,
     .cr = RADIO_CR,
-    .ldro = 0, /* only needed for SF11/SF12 at 125 kHz */
+    /* Low data rate optimization: compensates for clock drift when chirps
+     * are very long (over ~16 ms). Only needed for SF11/SF12 at 125 kHz. */
+    .ldro = 0,
   };
+
+  /* Packet format: what surrounds your data in each packet. */
   const sx126x_pkt_params_lora_t pkt_params = {
     .preamble_len_in_symb = RADIO_PREAMBLE_LEN,
+    /* Explicit: each packet carries a small header with its length, coding
+     * rate and CRC setting, so the receiver doesn't need to know them in
+     * advance. Implicit saves airtime but both sides must agree on them. */
     .header_type = SX126X_LORA_PKT_EXPLICIT,
-    .pld_len_in_bytes = 255, /* set again for each packet on transmit */
+    /* Payload length in bytes (max 255). Set again for each packet on
+     * transmit; in RX with an explicit header it's read from the header. */
+    .pld_len_in_bytes = 255,
+    /* Checksum on the payload, so the receiver can drop corrupted packets. */
     .crc_is_on = true,
+    /* Inverted IQ flips the chirp direction. LoRaWAN uses it so nodes don't
+     * hear each other; for a point-to-point link leave it off on both sides. */
     .invert_iq_is_on = false,
   };
 
-  /* Clean state. Reset is also the only way to undo TCXO mode (4.1.4). */
+  /* Clean state. Reset is also the only way to undo TCXO mode (4.1.4).
+   * STBY_RC = standby on the internal RC clock; most setup commands below
+   * (packet type, calibration) must be sent in this mode. */
   RADIO_CHECK(sx126x_reset(NULL));
   RADIO_CHECK(sx126x_set_standby(NULL, SX126X_STANDBY_CFG_RC));
 
@@ -103,13 +156,19 @@ int radio_init(void)
   RADIO_CHECK(sx126x_set_lora_mod_params(NULL, &mod_params));
   RADIO_CHECK(sx126x_set_lora_pkt_params(NULL, &pkt_params));
 
+  /* Ramp time: how quickly the PA turns on and off at the start and end of
+   * a packet. Switching too abruptly spreads energy into nearby frequencies;
+   * 200 us is a common, safe choice. */
   RADIO_CHECK(sx126x_set_pa_cfg(NULL, &pa_cfg));
   RADIO_CHECK(sx126x_set_tx_params(NULL, RADIO_TX_POWER_DBM, SX126X_RAMP_200_US));
 
-  /* The Wio-SX1262's antenna switch is driven by DIO2. */
+  /* The Wio-SX1262's antenna switch is driven by DIO2: the chip connects the
+   * antenna to the TX path while transmitting and to RX otherwise. */
   RADIO_CHECK(sx126x_set_dio2_as_rf_sw_ctrl(NULL, true));
 
-  /* Switch to the 32 MHz reference, then verify: no errors and mode 3. */
+  /* Switch to the 32 MHz reference (STBY_XOSC): the TCXO stays running, so
+   * later switches to TX or RX don't wait for it to start. Then verify: no
+   * errors and mode 3. */
   RADIO_CHECK(sx126x_set_standby(NULL, SX126X_STANDBY_CFG_XOSC));
   RADIO_CHECK(sx126x_get_device_errors(NULL, &errors));
   RADIO_CHECK(sx126x_get_status(NULL, &status));
