@@ -183,3 +183,68 @@ int radio_init(void)
 
   return 0;
 }
+
+/* Datasheet: 14.2 "Circuit Configuration for Basic Tx Operation" lists
+ * these steps in order. Most of the setup is already done in radio_init. */
+int radio_transmit(const uint8_t *data, uint8_t len)
+{
+  /* TODO 1: Prepare (move to file scope).
+   * You need pkt_params and mod_params here, but they're local consts in
+   * radio_init. Move them above radio_init as `static` variables (not
+   * const: step 4 changes the payload length). */
+
+  /* TODO 2: Check the arguments.
+   * Return -1 if data is NULL or len is 0. len is a uint8_t, so it can't
+   * exceed 255, which is the most the chip's buffer holds. */
+
+  /* TODO 3: Copy the payload into the radio's buffer.
+   * The SX1262 has a 256-byte RAM buffer shared by TX and RX.
+   * sx126x_set_buffer_base_address(NULL, tx_base, rx_base) says where TX
+   * data starts; use 0 for both. That only needs to happen once, so it
+   * could go in radio_init instead.
+   * Then call sx126x_write_buffer(NULL, offset, data, len). Use offset = the
+   * TX base you chose. */
+
+  /* TODO 4: Tell the chip how long the packet is.
+   * In explicit-header mode the chip sends exactly pld_len_in_bytes bytes,
+   * so set pkt_params.pld_len_in_bytes = len, then call
+   * sx126x_set_lora_pkt_params again. Forgetting this sends 255 bytes every
+   * time (the value from radio_init): ~2 s of airtime instead of ~0.2 s. */
+
+  /* TODO 5: Enable the IRQ flags you want to watch.
+   * sx126x_set_dio_irq_params(NULL, irq_mask, dio1_mask, dio2_mask, dio3_mask)
+   * - irq_mask: which events the chip records in its IRQ status register.
+   *   You want SX126X_IRQ_TX_DONE | SX126X_IRQ_TIMEOUT.
+   * - dioN_mask: which of those events also drive a DIO pin high. You'll
+   *   read the status over SPI (polling), so pass 0 for all three for now.
+   *   Later, mapping TX_DONE to DIO1 and using an EXTI interrupt saves the
+   *   CPU from waiting. (DIO2/DIO3 are already used for the antenna switch
+   *   and TCXO.)
+   * Like step 3, this can move to radio_init once it works.
+   * Then sx126x_clear_irq_status(NULL, SX126X_IRQ_ALL) so old flags don't
+   * look like this packet finishing. */
+
+  /* TODO 6: Start transmitting.
+   * sx126x_set_tx(NULL, timeout_in_ms). The chip moves into TX, sends the
+   * packet, raises TX_DONE, then returns to standby on its own.
+   * The timeout is a safety net: if TX hasn't finished by then, the chip
+   * stops and raises TIMEOUT. 0 means no timeout. A good value is the
+   * packet's airtime plus some margin:
+   *   sx126x_get_lora_time_on_air_in_ms(&pkt_params, &mod_params) + 100 */
+
+  /* TODO 7: Wait for it to finish.
+   * Loop: sx126x_get_irq_status(NULL, &irq) until irq has TX_DONE or TIMEOUT
+   * set (check with &). Also keep your own deadline with HAL_GetTick() (needs
+   * main.h) in case the chip never answers, so the loop can't hang forever.
+   * Returning -1 on TIMEOUT or your deadline is fine.
+   * Finally clear the flags with sx126x_clear_irq_status. */
+
+  /* After TX the chip goes to its "fallback mode", STBY_RC by default, so
+   * radio_print_status will show 2 instead of 3. That's expected. Use
+   * sx126x_set_rx_tx_fallback_mode(NULL, SX126X_FALLBACK_STDBY_XOSC) in
+   * radio_init to stay on the TCXO, which makes the next TX start faster. */
+
+  (void)data;
+  (void)len;
+  return -1;
+}

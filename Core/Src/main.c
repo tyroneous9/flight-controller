@@ -114,6 +114,19 @@ int main(void)
   {
     /* USER CODE END WHILE */
     /* USER CODE BEGIN 3 */
+    /* TODO: Send a test packet once per loop.
+     * - Build a short payload that changes each time, e.g. a counter:
+     *     char msg[32];
+     *     int n = snprintf(msg, sizeof msg, "hello %lu", count++);
+     *   A changing payload lets a receiver tell packets apart and spot drops.
+     * - Call radio_transmit((const uint8_t *)msg, n) and print OK/FAILED.
+     *   Only transmit if radio_init succeeded.
+     * - Airtime: ~20 bytes at SF9/125 kHz takes ~0.2 s, so once per second
+     *   is ~20% of the time on air. That's fine in the US, but over the EU's
+     *   1% duty-cycle limit at 868 MHz.
+     * - No receiver yet? TX_DONE means the chip sent the packet, but not that
+     *   it got through. To see the signal, an RTL-SDR dongle with GQRX/SDR#
+     *   tuned to 915 MHz shows each packet as a burst of chirps. */
     radio_print_status();
     HAL_Delay(1000);
   }
