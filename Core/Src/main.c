@@ -101,11 +101,13 @@ int main(void)
   if (radio_init() != 0)
   {
     printf("Radio init FAILED\r\n");
+    return 1;
   }
   else
   {
     printf("Radio init OK\r\n");
   }
+  uint32_t count = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -127,6 +129,13 @@ int main(void)
      * - No receiver yet? TX_DONE means the chip sent the packet, but not that
      *   it got through. To see the signal, an RTL-SDR dongle with GQRX/SDR#
      *   tuned to 915 MHz shows each packet as a burst of chirps. */
+    char msg[32];
+    int n = snprintf(msg, sizeof(msg), "count: %lu", count);
+    count++;
+    if (radio_transmit((const uint8_t *)msg, (uint8_t)n) == 0)
+      printf("TX OK: %s\r\n", msg);
+    else
+      printf("TX FAILED\r\n");
     radio_print_status();
     HAL_Delay(1000);
   }
